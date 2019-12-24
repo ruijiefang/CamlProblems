@@ -22,20 +22,12 @@ open Printf ;;
 
 let rec split l n = 
   let rec do_split = fun l i ->
-    if i >= n then
-      match l with 
-        | [] -> ([], [])
-        | a :: t -> 
-          match (do_split t (i + 1)) with
-            | (list1, list2) ->
-              (list1, a :: list2)
-    else
-      match l with
-        | [] -> ([], [])
-        | a :: t ->
-          match (do_split t (i + 1)) with
-            | (list1, list2) ->
-              (a :: list1, list2)
+    match l with
+      | [] -> ([], [])
+      | a :: t ->
+        let (list1, list2) = (do_split t (i + 1)) in
+          if i >= n then (list1, a :: list2)
+          else (a :: list1, list2)
   in
     do_split l 0
 ;; 
