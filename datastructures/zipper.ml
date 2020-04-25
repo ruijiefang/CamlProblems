@@ -80,5 +80,52 @@ let path_mul_2 : string path =
  * sign in the list is just a pair of (expr_tree, path_mul_2): *)
 let loc_mul_2 : string location = Loc (expr_tree, path_mul_2) 
 
-(* Navigating the tree using zippers. *)
+(* Huet Section 2.2: Navigating the tree using zippers. *)
+
+(* Go left on a location defined by (tree, path). *)
+let go_left (Loc (t, p)) = 
+  match p with 
+  | Top -> failwith "Cannot to left on top"
+  | Node ([], _, _) -> failwith "Cannot go left of leftmost node."
+  | Node (l :: left, up, right) -> Loc (l, Node (left, up, t :: right))
+
+(* Go right on a location defined by (tree, path). *)
+let go_right (Loc (t, p)) =
+  match p with 
+  | Top -> failwith "Cannot to right on top"
+  | Node (_, _, []) -> failwith "Cannot go right of rightmost node."
+  | Node (left, up, r :: right) -> Loc (r, Node (t :: left, up, right))
+
+(* Go up a layer to the parent on location defined by (tree, path). *)
+(* This is, yet, the most subtle operation in this data structure. 
+ * First, we have to realize that since ocaml lists are singly linked,
+ * going right has the effect of "pushing" left nodes onto the left list
+ * like a stack, so the left list is actually LIFO ordered when traversing
+ * the children of a parent. We can, of course, choose FIFO '@' linking over
+ * LIFO appending, but that would cost us time linear in the left list 
+ * every time we go right. Not a good solution. So here we have to reverse
+ * the ordering of the left list. If we implement something like a doubly linked
+ * list this problem will be solved and `go_up` can work in real constant time.
+ *
+ * This is in general not a problem when the arity of the tree is very small.
+ * 
+ * The success of zipper also partly comes from the observation that we can
+ * use the existing local information (of sibling nodes) to build up the parent
+ * node as we go up. Therefore there is no loss of information at all when we
+ * traverse subtrees. *)
+let go_up (Loc (t, p)) = 
+  match p with 
+  | Top -> failwith "Cannot go up further; already top."
+  | Node (left, up, right) -> Loc (Section ((List.rev left) @ (t :: right)), up)
+
+(* Goes down a node in the tree. *)
+let go_down (Loc (t, p)) = 
+  match p with 
+  | Item _ -> failwith "Cannot go down to an item (leaf) node"
+  | Section t :: trees -> Loc (t, Node ([], p, trees))
+
+(* Next, a helper method to access the n-th child of a subtree. *)
+let rec nth loc = function
+  | 1 -> go_down loc
+  | n -> if n > 0 then go_right @@ nth loc (n - 1) else failwith "nth: n <= 0"
 
