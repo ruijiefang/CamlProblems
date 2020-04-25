@@ -120,12 +120,39 @@ let go_up (Loc (t, p)) =
 
 (* Goes down a node in the tree. *)
 let go_down (Loc (t, p)) = 
-  match p with 
+  match t with 
   | Item _ -> failwith "Cannot go down to an item (leaf) node"
-  | Section t :: trees -> Loc (t, Node ([], p, trees))
+  | Section [] -> failwith "Cannot go down an empty node"
+  | Section (t :: trees) -> Loc (t, Node ([], p, trees))
 
 (* Next, a helper method to access the n-th child of a subtree. *)
 let rec nth loc = function
   | 1 -> go_down loc
   | n -> if n > 0 then go_right @@ nth loc (n - 1) else failwith "nth: n <= 0"
+
+(* Huet Section 2.3: Insertions and Deletions *)
+(* As shown above, local-level (sibling) insertion operations are easy to do: *)
+
+let insert_right (Loc (t, p)) r = 
+  match p with 
+  | Top -> failwith "Cannot insert on Top node"
+  | Node (left, up, right) -> Loc (t, Node (left, up, r :: right))
+
+let insert_left (Loc (t, p)) l = 
+  match p with 
+  | Top -> failwith "Cannot insert on Top node"
+  | Node (left, up, right) -> Loc (t, Node (l :: left, up, right))
+
+(* insert_down: 
+ * We can look at the zipper structre at another angle: 
+ * Everything represented by a path denotes level information and information
+ * further up the tree. Everything represented by a tree denotes the subtree
+ * rooted at the current node. Therefore to insert down, we can just augment
+ * the forest formed by child nodes with a leftmost (new) node inside the current
+ * tree, without changing the path. *)
+let insert_down (Loc (t, p)) d = 
+  match t with 
+  | Item i -> failwith "Cannot insert down of an item"
+  | Section trees -> Loc (d, Node ([], p, d :: trees))
+
 
